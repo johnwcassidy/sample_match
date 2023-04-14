@@ -1,0 +1,89 @@
+default_platform(:ios)
+
+platform :ios do
+
+  before_all do
+    setup_keychain
+    setup_appstore_connect
+  end
+
+  desc "Generate and store development provisioning profiles and certs in keychain"
+  lane :certs_dev_setup do
+    setup_certs(
+      readonly: false,
+      type: 'development',
+    )
+  end
+
+  desc "Read and store development provisioning profiles and certs in keychain"
+  lane :certs_dev do
+    setup_certs(
+      readonly: true,
+      type: 'development',
+    )
+  end
+
+  desc "Generate and store appstore provisioning profiles and certs in keychain"
+  lane :certs_appstore_setup do
+    setup_certs(
+      readonly: false,
+      type: 'appstore',
+    )
+  end
+
+  desc "Read and store appstore provisioning profiles and certs in keychain"
+  lane :certs_appstore do
+    setup_certs(
+      readonly: true,
+      type: 'appstore',
+    )
+  end
+
+  desc "Setup Certs with options"
+  private_lane :setup_certs do |options|
+    match(
+      readonly: options[:readonly],
+      type: options[:type],
+      force_for_new_devices: true,
+      keychain_name: ENV["PROJECT_KEYCHAIN_NAME"],
+      keychain_password: ENV["PROJECT_KEYCHAIN_PASSWORD"],
+      git_url: "https://github.com/johnwcassidy/sample_match_certificates.git",
+      git_basic_authorization: ENV["PROJECT_GITHUB_ACCESS_TOKEN"],
+      storage_mode: "git",
+    )
+  end
+
+  desc "Create Keychain to be used just for this purpose. Prevents local keychain from being polluted"
+  private_lane :setup_keychain do 
+    
+    # first remove any existing keychain as we will replace the contents
+    cleanup_keychain
+    
+    # create keychain to store details that is not default keychain
+    create_keychain(
+      name: ENV["PROJECT_KEYCHAIN_NAME"],
+      password: ENV["PROJECT_KEYCHAIN_PASSWORD"],
+      default_keychain: false,
+      unlock: true,
+      timeout: 0,
+    )
+  end
+
+  desc "Delete keychain that may exist"
+  private_lane :cleanup_keychain do 
+    # begin
+    #   delete_keychain(name: ENV["PROJECT_KEYCHAIN_NAME"], password: ENV["PROJECT_KEYCHAIN_PASSWORD"])
+    # rescue
+    #   puts "No keychain found to delete"
+    # end
+  end
+
+  desc "Setup AppStoreConnect API Access"
+  private_lane :setup_appstore_connect do 
+    app_store_connect_api_key(
+      key_id: ENV["APPSTORE_CONNECT_KEY_ID"],
+      issuer_id: ENV["APPSTORE_CONNECT_ISSUER_ID"],
+      key_content: ENV["APPSTORE_CONNECT_API_KEY"]
+    )
+  end
+end
